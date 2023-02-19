@@ -12,11 +12,9 @@ import java.util.Map;
 @Service
 public class UserService {
     private final Map<String, User> users = new HashMap<>();
-
     public Collection<User> findAll() {
         return users.values();
     }
-
     public User createUser(User user) {
         checkEmail(user);
         if (users.containsKey(user.getEmail())) {
