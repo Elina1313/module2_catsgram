@@ -1,33 +1,52 @@
 package ru.yandex.practicum.catsgram.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.catsgram.exception.PostNotFoundException;
+import ru.yandex.practicum.catsgram.dao.PostDao;
 import ru.yandex.practicum.catsgram.exception.UserNotFoundException;
 import ru.yandex.practicum.catsgram.model.Post;
 import ru.yandex.practicum.catsgram.model.User;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.stream.Collectors;
-
-import static ru.yandex.practicum.catsgram.Constants.DESCENDING_ORDER;
 
 @Service
 public class PostService {
+
+    private final PostDao postDao;
     private final UserService userService;
-    private final List<Post> posts = new ArrayList<>();
 
-    private static Integer globalId = 0;
+    //private final List<Post> posts = new ArrayList<>();
+    //private static Integer globalId = 0;
 
-    @Autowired
-    public PostService(UserService userService) {
+    public PostService(PostDao postDao, UserService userService) {
+        this.postDao = postDao;
         this.userService = userService;
     }
 
-    public Post create(Post post) {
-        User postAuthor = userService.findUserByEmail(post.getAuthor());
-        if (postAuthor == null) {
+    public Collection<Post> findPostsByUser(String userId) {
+        User user = userService.findUserById(userId)
+                .orElseThrow(() ->new UserNotFoundException("Пользователь с идентификатором " + userId + " не найден."));
+
+        return postDao.findPostsByUser(user);
+    }
+
+    public Collection<Post> findPostsByUser(String authorId, Integer size, String sort) {
+        return findPostsByUser(authorId)
+                .stream()
+                .sorted((p0, p1) -> {
+                    int comp = p0.getCreationDate().compareTo(p1.getCreationDate()); //прямой порядок сортировки
+                    if (sort.equals("desc")) {
+                        comp = -1 * comp; //обратный порядок сортировки
+                    }
+                    return comp;
+                })
+                .limit(size)
+                .collect(Collectors.toList());
+    }
+
+    /*public Post create(Post post) {
+        Optional<User> postAuthor = userService.findUserById(post.getAuthor());
+        if (postAuthor.isEmpty()) {
             throw new UserNotFoundException(String.format(
                     "Пользователь %s не найден",
                     post.getAuthor()));
@@ -71,5 +90,5 @@ public class PostService {
             result = -1 * result; //обратный порядок сортировки
         }
         return result;
-    }
+    }*/
 }
